@@ -24,6 +24,9 @@ func CreateUser(c *gin.Context) {
 
 	models.DB.Create(&newUser)
 
+	// saving this for future when working with authentication
+	// c.Header("Set-Cookie", "<cookie-name>=<cookie-value>; Expires=Mon, 17 Feb 2025 11:59:59 GMT")
+
 	c.IndentedJSON(200, newUser)
 }
 
@@ -39,23 +42,40 @@ func GetUser(c *gin.Context) {
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.IndentedJSON(400, struct{ message string }{message: "Invalid User search."})
-		return
+		c.IndentedJSON(404, gin.H{"message": "Unable to find user."})
 	}
 
 	var user models.User
 	user.ID = id
 
 	if err := models.DB.First(&user).Error; err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-		c.IndentedJSON(404, struct{ message string }{message: "User not found."})
-		return
+		c.IndentedJSON(404, gin.H{"message": "User not found."})
+	} else {
+		c.IndentedJSON(200, user)
 	}
-
-	c.IndentedJSON(200, user)
 }
 
 func UpdateUser(c *gin.Context) {
+	idStr := c.Param("id")
 
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.IndentedJSON(404, gin.H{"message": "Unable to find user."})
+	}
+
+	var user models.User
+	user.ID = id
+
+	if err := models.DB.First(&user).Error; err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
+		c.IndentedJSON(404, gin.H{"message": "User not found."})
+	}
+
+	c.BindJSON(&user)
+	if err := models.DB.Save(&user).Error; err != nil {
+		c.IndentedJSON(400, gin.H{"message": "Unable to update user."})
+	}
+
+	c.IndentedJSON(200, user)
 }
 
 func DeleteUser(c *gin.Context) {
