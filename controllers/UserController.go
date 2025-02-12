@@ -4,15 +4,23 @@ import (
 	"hayden/wedding-img-uploader/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 func CreateUser(c *gin.Context) {
 	var newUser models.User
 	c.BindJSON(&newUser)
-	// user := models.User{ID: 1, FirstName: "hayden", LastName: "marshall", Email: "hmarshall@example.com", Password: "hayden"}
+
+	key := newUser.Password
+	token := jwt.New(jwt.SigningMethodHS256)
+	hashedPassword, err := token.SignedString([]byte(key))
+	if err != nil {
+		c.IndentedJSON(400, struct{ message string }{message: "Invalid Password."})
+	}
+	newUser.Password = hashedPassword
+
 	models.DB.Create(&newUser)
 
-	// fmt.Println(main.DB)
 	c.IndentedJSON(200, newUser)
 }
 
