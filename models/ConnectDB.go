@@ -8,7 +8,7 @@ import (
 var DB *gorm.DB
 
 func InitDB() {
-	db, err := gorm.Open(sqlite.Open("uploader.sqlite"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("img-upload.db"), &gorm.Config{})
 
 	if err != nil {
 		panic("failed to connect database")
