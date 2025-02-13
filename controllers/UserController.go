@@ -25,7 +25,7 @@ func CreateUser(c *gin.Context) {
 	models.DB.Create(&newUser)
 
 	// saving this for future when working with authentication
-	// c.Header("Set-Cookie", "<cookie-name>=<cookie-value>; Expires=Mon, 17 Feb 2025 11:59:59 GMT")
+	// c.Header("Set-Cookie", "<cookie-name>=<cookie-value>; HttpOnly; Max-Age:2592000")
 
 	c.IndentedJSON(200, newUser)
 }
