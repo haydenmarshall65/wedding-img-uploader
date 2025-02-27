@@ -6,10 +6,13 @@ import (
 
 	"hayden/wedding-img-uploader/middleware"
 
+	"github.com/joho/godotenv"
+
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	godotenv.Load()
 	router := gin.Default()
 	router.Use(middleware.CORSMiddleware())
 
