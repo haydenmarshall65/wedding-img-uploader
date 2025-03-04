@@ -35,17 +35,23 @@ func APIMiddleware() gin.HandlerFunc {
 				return
 			}
 
-			userID := claims["user_id"].(int)
+			userID, ok := claims["user_id"].(float64)
 
-			authUser := models.User{ID: userID}
-
-			if err := models.DB.First(authUser).Error; err != nil {
+			if !ok {
 				c.JSON(401, gin.H{"message": "Unauthorized"})
 				c.Abort()
 				return
 			}
 
-			c.Set("user", authUser)
+			authUser := models.User{ID: int(userID)}
+
+			if err := models.DB.First(&authUser).Error; err != nil {
+				c.JSON(401, gin.H{"message": "Unauthorized"})
+				c.Abort()
+				return
+			}
+
+			c.Set("authenticated_user", authUser)
 			c.Next()
 		} else {
 			c.Next()

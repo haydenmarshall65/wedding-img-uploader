@@ -15,6 +15,7 @@ func main() {
 	godotenv.Load()
 	router := gin.Default()
 	router.Use(middleware.CORSMiddleware())
+	router.Use(middleware.APIMiddleware())
 
 	models.InitDB()
 
@@ -23,6 +24,8 @@ func main() {
 	router.POST("/api/v1/users", controllers.CreateUser)
 	router.PUT("/api/v1/users/:id", controllers.UpdateUser)
 	router.DELETE("/api/v1/users/:id", controllers.DeleteUser)
+
+	router.POST("login", controllers.Login)
 
 	router.Run(":3000")
 }
