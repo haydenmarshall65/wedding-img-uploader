@@ -2,9 +2,8 @@ package main
 
 import (
 	"hayden/wedding-img-uploader/controllers"
-	"hayden/wedding-img-uploader/models"
-
 	"hayden/wedding-img-uploader/middleware"
+	"hayden/wedding-img-uploader/models"
 
 	"github.com/joho/godotenv"
 
@@ -16,8 +15,15 @@ func main() {
 	router := gin.Default()
 	router.Use(middleware.CORSMiddleware())
 	router.Use(middleware.APIMiddleware())
+	router.Use(middleware.FrontEndMiddleware())
 
 	models.InitDB()
+
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "Hello World",
+		})
+	})
 
 	router.GET("/api/v1/users", controllers.GetUsers)
 	router.GET("/api/v1/users/:id", controllers.GetUser)
@@ -25,7 +31,7 @@ func main() {
 	router.PUT("/api/v1/users/:id", controllers.UpdateUser)
 	router.DELETE("/api/v1/users/:id", controllers.DeleteUser)
 
-	router.POST("login", controllers.Login)
+	router.POST("/auth/login", controllers.Login)
 
 	router.Run(":3000")
 }
