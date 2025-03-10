@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -14,17 +14,26 @@ func CreateUser(c *gin.Context) {
 	var newUser models.User
 	c.BindJSON(&newUser)
 
-	key := newUser.Password
-	token := jwt.New(jwt.SigningMethodHS256)
-	hashedPassword, err := token.SignedString([]byte(key))
-	if err != nil {
-		c.IndentedJSON(400, struct{ message string }{message: "Invalid Password."})
+	password := newUser.Password
+	if password == "" {
+		c.JSON(400, gin.H{"message": "Password is required."})
+		return
 	}
-	newUser.Password = hashedPassword
+
+	bcryptHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Invalid Password."})
+		return
+	}
+
+	newUser.Password = string(bcryptHash)
 
 	models.DB.Create(&newUser)
 
-	c.IndentedJSON(200, newUser)
+	// saving this for future when working with authentication
+	// c.Header("Set-Cookie", "<cookie-name>=<cookie-value>; HttpOnly; Max-Age:2592000")
+
+	c.JSON(200, newUser)
 }
 
 func GetUsers(c *gin.Context) {
@@ -39,7 +48,7 @@ func GetUser(c *gin.Context) {
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.IndentedJSON(400, struct{ message string }{message: "Invalid User search."})
+		c.JSON(404, gin.H{"message": "Unable to find user."})
 		return
 	}
 
@@ -47,17 +56,77 @@ func GetUser(c *gin.Context) {
 	user.ID = id
 
 	if err := models.DB.First(&user).Error; err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-		c.IndentedJSON(404, struct{ message string }{message: "User not found."})
+		c.JSON(404, gin.H{"message": "User not found."})
+		return
+	} else {
+		c.JSON(200, user)
 		return
 	}
-
-	c.IndentedJSON(200, user)
 }
 
 func UpdateUser(c *gin.Context) {
+	idStr := c.Param("id")
 
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(404, gin.H{"message": "Unable to find user."})
+		return
+	}
+
+	var user models.User
+	user.ID = id
+
+	if err := models.DB.First(&user).Error; err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(404, gin.H{"message": "User not found."})
+		return
+	}
+
+	pass := []byte(user.Password)
+
+	c.BindJSON(&user)
+
+	if err := bcrypt.CompareHashAndPassword(pass, []byte(user.Password)); err != nil {
+		c.JSON(400, gin.H{"message": "Invalid Password."})
+		return
+	}
+
+	bcryptHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Invalid Password."})
+		return
+	}
+
+	user.Password = string(bcryptHash)
+
+	if err := models.DB.Save(&user).Error; err != nil {
+		c.JSON(400, gin.H{"message": "Unable to update user."})
+		return
+	}
+
+	c.JSON(200, user)
 }
 
 func DeleteUser(c *gin.Context) {
+	idStr := c.Param("id")
 
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(404, gin.H{"message": "Unable to find user."})
+		return
+	}
+
+	var user models.User
+	user.ID = id
+
+	if err := models.DB.First(&user).Error; err != nil {
+		c.JSON(404, gin.H{"message": "Unable to find user."})
+		return
+	}
+
+	if err := models.DB.Delete(&user).Error; err != nil {
+		c.JSON(400, gin.H{"message": "Unable to delete user."})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "User deleted."})
 }
