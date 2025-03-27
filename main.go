@@ -32,6 +32,7 @@ func main() {
 	router.DELETE("/api/v1/users/:id", controllers.DeleteUser)
 
 	router.POST("/auth/login", controllers.Login)
+	router.POST("auth/register", controllers.Register)
 
 	router.Run(":3000")
 }

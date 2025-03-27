@@ -3,11 +3,28 @@ package controllers
 import (
 	"hayden/wedding-img-uploader/models"
 	"hayden/wedding-img-uploader/utils"
+	"log"
+	"regexp"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type RegisterErrors struct {
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+}
+
+func (errs RegisterErrors) HasErrors() bool {
+	if errs.Email != "" || errs.FirstName != "" || errs.LastName != "" || errs.Password != "" {
+		return false
+	} else {
+		return true
+	}
+}
 
 func Login(c *gin.Context) {
 	var loggingInUser models.User
@@ -52,5 +69,56 @@ func Login(c *gin.Context) {
 }
 
 func Register(c *gin.Context) {
-	// todo
+	var registerringUser models.User
+	c.ShouldBindJSON(&registerringUser)
+
+	var registerErrors RegisterErrors
+
+	if registerringUser.FirstName == "" {
+		registerErrors.FirstName = "First name is required."
+	}
+	if registerringUser.LastName == "" {
+		registerErrors.LastName = "Last name is required."
+	}
+	if registerringUser.Email == "" {
+		registerErrors.Email = "Email is required."
+	} else {
+		// validate user email matches expectations
+		passesValidation, err := regexp.Match(`^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`, []byte(registerringUser.Email))
+
+		if err != nil {
+			log.Print(err)
+			c.JSON(500, gin.H{"message": "There was an issue creating the account."})
+			return
+		}
+
+		if !passesValidation {
+			registerErrors.Email = "Please give a valid email."
+		}
+	}
+	if registerringUser.Password == "" {
+		registerErrors.Password = "Password is required."
+	}
+
+	if registerErrors.HasErrors() {
+		c.JSON(400, registerErrors)
+		return
+	}
+
+	password := registerringUser.Password
+
+	bcryptHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Invalid Password."})
+		return
+	}
+
+	registerringUser.Password = string(bcryptHash)
+
+	if err := models.DB.Create(&registerringUser).Error; err != nil {
+		c.JSON(500, gin.H{"message": "Unable to create new account at this time."})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "New account " + registerringUser.Email + " created!"})
 }

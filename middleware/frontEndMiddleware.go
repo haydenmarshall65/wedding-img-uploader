@@ -12,6 +12,11 @@ import (
 // todo make middleware to check if user is logged in.
 func FrontEndMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if strings.Contains("auth/", c.Request.RequestURI) || strings.Contains("api/v1", c.Request.RequestURI) {
+			c.Next()
+			return
+		}
+
 		secrettoken := c.Request.Header.Get("Cookie")
 
 		tokenParts := strings.Split(secrettoken, "secrettoken=")
