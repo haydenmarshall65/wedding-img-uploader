@@ -17,8 +17,10 @@ func FrontEndMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// the browser stores the token under "Cookie"
 		secrettoken := c.Request.Header.Get("Cookie")
 
+		// split it up to remove the "secrettoken" beginning.
 		tokenParts := strings.Split(secrettoken, "secrettoken=")
 		token := tokenParts[1]
 
@@ -31,6 +33,7 @@ func FrontEndMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// check if the user's personal access token exists in the code. If not, redirect to the home page.
 		var userAuthToken models.PersonalAccessToken
 
 		err := models.DB.Preload("User").Where("token", token).First(&userAuthToken)

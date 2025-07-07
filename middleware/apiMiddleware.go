@@ -18,14 +18,14 @@ func APIMiddleware() gin.HandlerFunc {
 		}
 		authHeader := c.Request.Header.Get("Authorization")
 		if authHeader == "" {
-			c.JSON(401, gin.H{"message": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized: No auth headers provided. Send the correct auth headers."})
 			c.Abort()
 			return
 		}
 
 		tokenParts := strings.Split(authHeader, " ")
 		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-			c.JSON(401, gin.H{"message": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized: Incorrect auth format. Send the correct auth headers."})
 			c.Abort()
 			return
 		}
@@ -33,7 +33,7 @@ func APIMiddleware() gin.HandlerFunc {
 		token := tokenParts[1]
 		claims, err := utils.ValidateToken(token)
 		if err != nil {
-			c.JSON(401, gin.H{"message": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized: Invalid token. Create a new token to continue using the app."})
 			c.Abort()
 			return
 		}
@@ -41,7 +41,7 @@ func APIMiddleware() gin.HandlerFunc {
 		userID, ok := claims["user_id"].(float64)
 
 		if !ok {
-			c.JSON(401, gin.H{"message": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized: Invalid User. Create a new token and try again."})
 			c.Abort()
 			return
 		}
@@ -49,7 +49,7 @@ func APIMiddleware() gin.HandlerFunc {
 		authUser := models.User{ID: int(userID)}
 
 		if err := models.DB.First(&authUser).Error; err != nil {
-			c.JSON(401, gin.H{"message": "Unauthorized"})
+			c.JSON(401, gin.H{"message": "Unauthorized: Invalid User. Please sign in or sign up and try again."})
 			c.Abort()
 			return
 		}
